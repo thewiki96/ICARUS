@@ -169,10 +169,10 @@ export class World1Scene extends Phaser.Scene {
       this._hud.updateArgos(eff);
     };
     this._hermes.onFired = () => {
-      this.scene.start('GameOverScene', { type: 'fired', day: this._gameState.totalDaysEmployed });
+      this.scene.start('GameOverScene', { type: 'fired', day: this._gameState.currentDay + 1 });
     };
     this._hermes.onPandora = () => {
-      this.scene.start('GameOverScene', { type: 'pandora', day: this._gameState.totalDaysEmployed });
+      this.scene.start('GameOverScene', { type: 'pandora', day: this._gameState.currentDay + 1 });
     };
     this._hermes.start();
 
@@ -974,7 +974,7 @@ export class World1Scene extends Phaser.Scene {
   _packageLost(pkg) {
     // Level 4: any missed box is immediate termination
     if (this.levelManager.currentLevel >= 4) {
-      this.scene.start('GameOverScene', { type: 'fired', day: this._gameState.totalDaysEmployed });
+      this.scene.start('GameOverScene', { type: 'fired', day: this._gameState.currentDay + 1 });
       return;
     }
 
