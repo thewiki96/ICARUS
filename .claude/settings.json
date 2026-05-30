@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check /Users/nicolashenaobonnet/Downloads/ICARUS/src/systems/Hermes.js)",
+      "Bash(node --check /Users/nicolashenaobonnet/Downloads/ICARUS/src/systems/LevelManager.js)",
+      "Bash(node --check /Users/nicolashenaobonnet/Downloads/ICARUS/src/systems/Pandora.js)",
+      "Bash(git add *)"
+    ]
+  }
+}

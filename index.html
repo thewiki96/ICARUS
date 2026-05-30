@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ICARUS</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Jacquard+24&display=swap" rel="stylesheet" />
+
+  <!-- Game stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark:        #050510;
+      --bg-deep:        #0D0D2B;
+      --grad-top:       #7FFFD4;
+      --grad-white:     #FFFFFF;
+      --grad-coral:     #FF6B6B;
+      --grad-red:       #CC2200;
+      --cyan:           #00FFFF;
+      --cyan-dim:       #007788;
+      --gold:           #FFD700;
+      --red-alert:      #FF2200;
+      --green-safe:     #00FF66;
+      --yellow-warn:    #FFD700;
+      --pandora-purple: #CC00FF;
+      --white:          #FFFFFF;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg-dark);
+      overflow: hidden;
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    /* ── Phaser canvas wrapper ── */
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #game-container canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* ── HTML overlay layer (lives above Phaser canvas) ── */
+    #html-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── Retro panel (reusable) ── */
+    .retro-panel {
+      border: 3px solid var(--cyan);
+      background: rgba(0, 0, 20, 0.88);
+      padding: 16px 20px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      line-height: 1.8;
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.2), inset 0 0 8px rgba(0, 0, 50, 0.5);
+      border-radius: 0;
+    }
+
+    /* ── Notification system ── */
+    #notification-container {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .retro-notification {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--cyan);
+      background: rgba(0, 0, 20, 0.92);
+      border: 2px solid var(--cyan);
+      border-left: 6px solid var(--cyan);
+      padding: 10px 14px;
+      max-width: 300px;
+      line-height: 1.8;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+      transform: translateX(120%);
+      transition: transform 0.3s ease-out;
+      opacity: 1;
+    }
+
+    .retro-notification.show {
+      transform: translateX(0);
+    }
+
+    .retro-notification.hide {
+      opacity: 0;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .retro-notification.type-INFO    { border-left-color: #00FFFF; }
+    .retro-notification.type-WARNING { border-left-color: #FFD700; color: #FFD700; }
+    .retro-notification.type-SYSTEM  { border-left-color: #CC00FF; color: #CC00FF; }
+    .retro-notification.type-HR      { border-left-color: #FF2200; color: #FF2200; }
+
+    .notif-type {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 7px;
+      opacity: 0.8;
+    }
+
+    .notif-text {
+      display: block;
+    }
+
+    /* ── White flash overlay ── */
+    #flash-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      transition: opacity 0.2s ease-in;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <!-- HTML overlay for notifications + flash -->
+  <div id="html-overlay">
+    <!-- Notification stack -->
+    <div id="notification-container"></div>
+
+    <!-- White flash overlay -->
+    <div id="flash-overlay"></div>
+  </div>
+
+  <!-- Main game entry -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

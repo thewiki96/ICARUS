@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/nicolashenaobonnet/Downloads/ICARUS/src/audio)",
+      "Bash(mkdir -p /Users/nicolashenaobonnet/Downloads/ICARUS/src/scenes)",
+      "Bash(mkdir -p /Users/nicolashenaobonnet/Downloads/ICARUS/src/systems)",
+      "Bash(mkdir -p /Users/nicolashenaobonnet/Downloads/ICARUS/src/ui)",
+      "Bash(open /Users/nicolashenaobonnet/Downloads/ICARUS/index.html)"
+    ]
+  }
+}

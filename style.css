@@ -1,0 +1,16 @@
+/* style.css — global overrides beyond what index.html inline styles handle */
+
+/* Ensure pixel-perfect canvas */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+/* Kill scrollbars */
+html, body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: #050510;
+}
