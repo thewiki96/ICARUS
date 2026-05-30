@@ -1,6 +1,6 @@
 # ICARUS
 
-**A game by Larata / BitRot**
+**A game by Larata 
 
 ![IMAGE](./screenshoticarus/Screenshot%202026-05-30%20at%2013.33.45.png)
 
@@ -65,18 +65,7 @@ The title refers not only to the fall, but to the flight itself — to the brief
 
 ---
 
-## References
 
-- Harun Farocki, *Serious Games* (2009–2010)
-- Ian Bogost, *Persuasive Games* (2007)
-- Molleindustria, *Every Day the Same Dream* (2009)
-- Newsgaming, *September 12th* (2003)
-- Bernard Stiegler, *Technics and Time*
-- Guy Debord, *Le Jeu de la Guerre* (1977)
-
----
-
-## Technical
 
 Built with Phaser.js 3. Runs entirely in the browser — no backend, no data collection, no accounts.
 
