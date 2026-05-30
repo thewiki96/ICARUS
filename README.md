@@ -2,6 +2,8 @@
 
 **A game by Larata / BitRot**
 
+![IMAGE](./screenshoticarus/Screenshot%202026-05-30%20at%2013.33.45.png)
+
 ---
 
 ## About
