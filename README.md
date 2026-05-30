@@ -20,6 +20,8 @@ The game never tells you everything you need to know.
 
 Open `index.html` in a browser. No installation required.
 
+or: https://thewiki96.github.io/ICARUS/
+
 Use your mouse to interact. Click and drag packages to their correct delivery slots before time runs out. Watch your performance metrics. Read the notifications from HR.
 
 Try to last as long as possible.
