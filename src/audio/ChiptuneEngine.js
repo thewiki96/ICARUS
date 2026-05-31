@@ -170,6 +170,14 @@ export class ChiptuneEngine {
         break;
       }
 
+      case 'back_pain': {
+        // Deep low thud — the body taking impact
+        this.playNote(60, 0.4, 'sine', 0.6);
+        // Sharp high crackle 50ms later — the nerve firing
+        setTimeout(() => this.playNote(520, 0.04, 'square', 0.2), 50);
+        break;
+      }
+
       case 'audit': {
         // Low gong-like tone for audits
         this.playNote(110, 0.5, 'triangle', 0.2, 0.0);

@@ -14,7 +14,9 @@ export class LevelManager {
         maxBoxes: 1,
         slotsPerCategory: 1,        // one slot per category, no ID needed
         availableTags: ['STANDARD', 'PRIORITY', 'FRAGILE'],
-        showSlotId: false
+        showSlotId: false,
+        weightSystem: false,
+        somaSystem:   false
       },
       2: {
         id: 2,
@@ -27,7 +29,9 @@ export class LevelManager {
         maxBoxes: 2,
         slotsPerCategory: 2,
         availableTags: ['STANDARD', 'PRIORITY', 'FRAGILE'],
-        showSlotId: true
+        showSlotId: true,
+        weightSystem: true,
+        somaSystem:   false
       },
       3: {
         id: 3,
@@ -40,7 +44,9 @@ export class LevelManager {
         maxBoxes: 2,
         slotsPerCategory: 2,
         availableTags: ['STANDARD', 'PRIORITY', 'FRAGILE', 'URGENT'],
-        showSlotId: true
+        showSlotId: true,
+        weightSystem: true,
+        somaSystem:   true
       },
       4: {
         id: 4,
@@ -53,7 +59,9 @@ export class LevelManager {
         maxBoxes: 3,
         slotsPerCategory: 2,
         availableTags: ['STANDARD', 'PRIORITY', 'FRAGILE', 'URGENT'],
-        showSlotId: true
+        showSlotId: true,
+        weightSystem: true,
+        somaSystem:   true
       }
     };
   }

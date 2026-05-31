@@ -50,6 +50,18 @@ export class RetroHUD {
     }).setOrigin(1, 0).setDepth(this._depth + 2);
     this._drawArgosPanel(50);
 
+    // ── SOMA Bar — above ARGOS, hidden until somaSystem activates ────────
+    const somaBarY = height - 70;
+    this._somaBg    = this.scene.add.graphics().setDepth(this._depth).setVisible(false);
+    this._somaFill  = this.scene.add.graphics().setDepth(this._depth + 1).setVisible(false);
+    this._somaLabel = this.scene.add.text(14 + 8, somaBarY + 2, 'SOMA', {
+      fontFamily: "'Press Start 2P'",
+      fontSize:   '8px',
+      color:      '#00FFFF'
+    }).setDepth(this._depth + 2).setVisible(false);
+    this._somaVisible = false;
+    this._somaPulse   = null;
+
     // ── Pulse tween for danger state ──────────────────────────────────────
     this._dangerPulse = null;
   }
@@ -217,8 +229,87 @@ export class RetroHUD {
     this._drawArgosPanel(efficiency);
   }
 
+  // ── SOMA bar ───────────────────────────────────────────────────────────────
+
+  setSoma(value) {
+    if (!this._somaVisible) {
+      this._somaBg.setVisible(true);
+      this._somaFill.setVisible(true);
+      this._somaLabel.setVisible(true);
+      this._somaVisible = true;
+    }
+    this._drawSomaPanel(value);
+  }
+
+  _drawSomaPanel(value) {
+    const { width, height } = this.scene.scale;
+    const barX = 8;
+    const barY = height - 70;
+    const barW = width - 16;
+    const barH = 18;
+
+    const bg = this._somaBg;
+    bg.clear();
+    bg.fillStyle(0x000014, 0.88);
+    bg.fillRect(barX, barY, barW, barH);
+    bg.lineStyle(2, 0xFF6600, 1);
+    bg.strokeRect(barX, barY, barW, barH);
+
+    const fill = this._somaFill;
+    fill.clear();
+
+    const innerX   = barX + 4;
+    const innerY   = barY + 4;
+    const innerW   = barW - 8;
+    const innerH   = 10;
+    const filledW  = Math.round((Math.min(100, Math.max(0, value)) / 100) * innerW);
+    const chunkW   = 8;
+    const stride   = chunkW + 2;
+    const fillColor = value >= 70 ? 0xFF2200 : 0xFF6600;
+
+    let drawn = 0;
+    while (drawn + chunkW <= filledW) {
+      fill.fillStyle(fillColor, 1);
+      fill.fillRect(innerX + drawn, innerY, chunkW, innerH);
+      drawn += stride;
+    }
+    const remainder = filledW - drawn;
+    if (remainder > 0) {
+      fill.fillStyle(fillColor, 0.7);
+      fill.fillRect(innerX + drawn, innerY, remainder, innerH);
+    }
+
+    // Pulse in red zone (70–99%)
+    if (value >= 70 && value < 100) {
+      this._startSomaPulse();
+    } else {
+      this._stopSomaPulse();
+    }
+  }
+
+  _startSomaPulse() {
+    if (this._somaPulse) return;
+    this._somaPulse = this.scene.tweens.add({
+      targets:  this._somaFill,
+      alpha:    0.4,
+      duration: 400,
+      ease:     'Sine.easeInOut',
+      yoyo:     true,
+      repeat:   -1
+    });
+  }
+
+  _stopSomaPulse() {
+    if (this._somaPulse) {
+      this._somaPulse.stop();
+      this._somaPulse = null;
+      this._somaFill.setAlpha(1);
+    }
+  }
+
   destroy() {
     this._stopDangerPulse();
+    this._stopSomaPulse();
     this._dayBg.destroy();
     this._dayText.destroy();
     this._kronosBg.destroy();
@@ -227,5 +318,8 @@ export class RetroHUD {
     this._argosFill.destroy();
     this._argosLabel.destroy();
     this._argosPercent.destroy();
+    this._somaBg.destroy();
+    this._somaFill.destroy();
+    this._somaLabel.destroy();
   }
 }

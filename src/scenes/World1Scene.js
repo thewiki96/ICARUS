@@ -82,6 +82,8 @@ export class World1Scene extends Phaser.Scene {
     this._lastPlayerDeliveryType = null;
     this._kronosOldestPkg   = null;
     this._kronosTickPlaying = false;
+    this._soma              = 0;
+    this._backPainActive    = false;
   }
 
   // Called by Phaser before every create() — guarantees a clean slate on restart
@@ -113,6 +115,8 @@ export class World1Scene extends Phaser.Scene {
     this._lastPlayerDeliveryType = null;
     this._kronosOldestPkg   = null;
     this._kronosTickPlaying = false;
+    this._soma              = 0;
+    this._backPainActive    = false;
   }
 
   create() {
@@ -635,10 +639,16 @@ export class World1Scene extends Phaser.Scene {
     // DAMAGED is a visual state, not a type — 25% chance in Level 4+
     const isDamaged = this.levelManager.currentLevel >= 4 && Math.random() < 0.25;
 
-    const pkg = this._buildPackageGfx(type, startX, boxShape, isDamaged);
+    // Weight: LIGHT or HEAVY in Levels 2+; null in Level 1
+    const weight = this.currentLevelData.weightSystem
+      ? (Math.random() < 0.5 ? 'LIGHT' : 'HEAVY')
+      : null;
+
+    const pkg = this._buildPackageGfx(type, startX, boxShape, isDamaged, weight);
     pkg.pkgType    = type;
     pkg.shape      = boxShape;
     pkg.isDamaged  = isDamaged;
+    pkg.weight     = weight;
     pkg.isDragging = false;
 
     this._packages.push(pkg);
@@ -661,11 +671,11 @@ export class World1Scene extends Phaser.Scene {
     return tags[Math.floor(Math.random() * tags.length)];
   }
 
-  _buildPackageGfx(type, startX = -64, shape = 'square', isDamaged = false) {
+  _buildPackageGfx(type, startX = -64, shape = 'square', isDamaged = false, weight = null) {
     // ── Dimensions from shape definition ─────────────────────────────────────
     const { W, H, D, T } = SHAPE_DIMS[shape] || SHAPE_DIMS.square;
-    const BW = W + D;   // total bounding width
-    const BH = T + H;   // total bounding height
+    const BW = W + D;                     // total bounding width
+    const BH = T + H + (weight ? 8 : 0); // extra row for weight indicator
 
     // ── Bake box + labels into a RenderTexture ────────────────────────────
     const rt = this.add.renderTexture(0, 0, BW, BH);
@@ -714,16 +724,28 @@ export class World1Scene extends Phaser.Scene {
       fontFamily: "'Press Start 2P'", fontSize: '6px', color: tagColor
     });
 
+    // Weight indicator — ▲ (LIGHT) or ▲▲▲ (HEAVY), white, below tag text
+    let weightText = null;
+    if (weight) {
+      weightText = this.add.text(0, 0, weight === 'LIGHT' ? '▲' : '▲▲▲', {
+        fontFamily: "'Press Start 2P'", fontSize: '6px', color: '#FFFFFF'
+      });
+    }
+
     rt.beginDraw();
-    rt.batchDraw(gfx,     0,                                0);
+    rt.batchDraw(gfx,     0,                                    0);
     rt.batchDraw(idText,  Math.floor((BW - idText.width)  / 2), T + 9);
     rt.batchDraw(tagText, Math.floor((BW - tagText.width) / 2), T + 22);
+    if (weightText) {
+      rt.batchDraw(weightText, Math.floor((BW - weightText.width) / 2), T + 34);
+    }
     rt.endDraw();
 
     // Clean up temp objects
     gfx.destroy();
     idText.destroy();
     tagText.destroy();
+    if (weightText) weightText.destroy();
 
     // ── Damage effects — baked on top as a second render pass ─────────────
     if (isDamaged) {
@@ -793,6 +815,12 @@ export class World1Scene extends Phaser.Scene {
       pkg.isDragging  = true;
       pkg._hoveredSlot = null;
       this.tweens.killTweensOf(pkg);
+      // SOMA accumulation — picking up a HEAVY box costs 8 fatigue
+      if (this.currentLevelData.somaSystem && pkg.weight === 'HEAVY') {
+        this._soma = Math.min(100, this._soma + 8);
+        this._hud.setSoma(this._soma);
+        if (this._soma >= 100) this._triggerBackPain();
+      }
       // Snapshot home position at drag start (current scrolled position)
       pkg.homeX = pkg.x;
       pkg.homeY = pkg.y;
@@ -809,11 +837,24 @@ export class World1Scene extends Phaser.Scene {
 
     pkg.on('drag', (pointer, dragX, dragY) => {
       if (this._paused) return;
-      pkg.x = dragX;
-      pkg.y = dragY;
+
+      if (pkg.weight === 'HEAVY') {
+        // Lerp — follows pointer with lag
+        pkg._dragVelX = dragX - pkg.x;
+        pkg._dragVelY = dragY - pkg.y;
+        pkg.x += pkg._dragVelX * 0.07;
+        pkg.y += pkg._dragVelY * 0.07;
+      } else {
+        // LIGHT or no weight — direct position; track velocity for overshoot
+        pkg._dragVelX = dragX - pkg.x;
+        pkg._dragVelY = dragY - pkg.y;
+        pkg.x = dragX;
+        pkg.y = dragY;
+      }
+
       // Shadow fades and scales as box rises above home Y
       if (pkg.shadowGfx) {
-        const dy = Math.max(0, pkg.homeY - dragY);
+        const dy = Math.max(0, pkg.homeY - pkg.y);
         pkg.shadowGfx.setAlpha(Math.max(0.08, 0.4 - dy * 0.004));
         pkg.shadowGfx.setScale(1 + dy * 0.005, 1);
       }
@@ -955,17 +996,32 @@ export class World1Scene extends Phaser.Scene {
 
   _returnPkgToConveyor(pkg) {
     this.tweens.killTweensOf(pkg);
-    this.tweens.add({
-      targets: pkg,
-      x: pkg.homeX,
-      y: pkg.homeY,
-      duration: 250,
-      ease: 'Quad.easeOut'
-    });
     pkg.setDepth(2);
     if (pkg.shadowGfx) {
       pkg.shadowGfx.setAlpha(0.4);
       pkg.shadowGfx.setScale(1, 1);
+    }
+
+    if (pkg.weight === 'LIGHT' && pkg._dragVelX !== undefined) {
+      // Overshoot 15px in last drag direction, then snap back
+      const len = Math.sqrt(pkg._dragVelX ** 2 + pkg._dragVelY ** 2) || 1;
+      const ox  = pkg.x + (pkg._dragVelX / len) * 15;
+      const oy  = pkg.y + (pkg._dragVelY / len) * 15;
+      this.tweens.add({
+        targets: pkg, x: ox, y: oy,
+        duration: 80, ease: 'Quad.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: pkg, x: pkg.homeX, y: pkg.homeY,
+            duration: 180, ease: 'Quad.easeIn'
+          });
+        }
+      });
+    } else {
+      this.tweens.add({
+        targets: pkg, x: pkg.homeX, y: pkg.homeY,
+        duration: 250, ease: 'Quad.easeOut'
+      });
     }
   }
 
@@ -1060,6 +1116,17 @@ export class World1Scene extends Phaser.Scene {
         this._hermes.onTaskFast();
       } else {
         this._hermes.onTaskSlow();
+      }
+
+      // SOMA: delivering HEAVY costs 4 more fatigue; LIGHT delivery relieves 3
+      if (this.currentLevelData.somaSystem) {
+        if (pkg.weight === 'HEAVY') {
+          this._soma = Math.min(100, this._soma + 4);
+        } else if (pkg.weight === 'LIGHT') {
+          this._soma = Math.max(0, this._soma - 3);
+        }
+        this._hud.setSoma(this._soma);
+        if (this._soma >= 100) this._triggerBackPain();
       }
 
       const tx = slot.x + slot.w / 2 - pkg.hitW / 2;
@@ -1656,6 +1723,71 @@ export class World1Scene extends Phaser.Scene {
     });
   }
 
+  // ── Back pain event ───────────────────────────────────────────────────────
+
+  _triggerBackPain() {
+    if (this._backPainActive) return;
+    this._backPainActive = true;
+
+    const { _w: w, _h: h } = this;
+
+    // Step 1 — Single-frame white flash
+    const flash = this.add.rectangle(0, 0, w, h, 0xFFFFFF, 1).setOrigin(0).setDepth(999);
+    this.time.delayedCall(16, () => flash.destroy());
+
+    // Step 2 — Sound
+    if (this._audio) this._audio.playSFX('back_pain');
+
+    // Step 3 — Screen shake
+    this.cameras.main.shake(500, 0.025);
+
+    // Step 4 — Red vignette: ramp in → 4 pulses → fade out
+    const vignette = this.add.graphics().setDepth(998);
+    vignette.fillStyle(0xFF0000, 1);
+    vignette.fillRect(0, 0, w, h);
+    vignette.setAlpha(0);
+
+    this.tweens.add({
+      targets: vignette, alpha: 0.5, duration: 200, ease: 'Linear',
+      onComplete: () => {
+        this.tweens.add({
+          targets: vignette, alpha: 0.2, duration: 400,
+          ease: 'Sine.easeInOut', yoyo: true, repeat: 3,  // 4 full cycles × 800ms
+          onComplete: () => {
+            this.tweens.add({
+              targets: vignette, alpha: 0, duration: 1000, ease: 'Linear',
+              onComplete: () => vignette.destroy()
+            });
+          }
+        });
+      }
+    });
+
+    // Step 5 — Cursor tremor: random nudge to all non-dragged boxes every 80ms
+    this.time.addEvent({
+      delay: 80, repeat: 75,
+      callback: () => {
+        this._packages.forEach(pkg => {
+          if (!pkg.isDragging) {
+            pkg.x += Phaser.Math.Between(-3, 3);
+            pkg.y += Phaser.Math.Between(-2, 2);
+          }
+        });
+      }
+    });
+
+    // Step 6 — Force all boxes to HEAVY for the duration
+    this._packages.forEach(pkg => { pkg._originalWeight = pkg.weight; pkg.weight = 'HEAVY'; });
+
+    // Step 7 — Restore and reset after 6 seconds
+    this.time.delayedCall(6000, () => {
+      this._packages.forEach(pkg => { pkg.weight = pkg._originalWeight || pkg.weight; });
+      this._soma           = 30;
+      this._backPainActive = false;
+      this._hud.setSoma(30);
+    });
+  }
+
   // ── Scene lifecycle ───────────────────────────────────────────────────────
 
   update() {
@@ -1680,6 +1812,15 @@ export class World1Scene extends Phaser.Scene {
       const dt    = this.game.loop.delta / 1000;   // seconds since last frame
       const speed = this._getConveyorSpeed();       // px/sec for current level
 
+      // SOMA natural decay — only while no box is being dragged
+      if (this.currentLevelData.somaSystem && this._soma > 0) {
+        const anyDragging = this._packages.some(p => p.isDragging);
+        if (!anyDragging) {
+          this._soma = Math.max(0, this._soma - 0.3 * dt);
+          this._hud.setSoma(this._soma);
+        }
+      }
+
       // Scroll conveyor belt — visual speed matches package speed
       this._conveyorOffset += speed * dt;
       this._drawBelt();
@@ -1692,7 +1833,11 @@ export class World1Scene extends Phaser.Scene {
       // Move packages and check for right-edge escape
       for (const pkg of [...this._packages]) {
         if (!pkg.isDragging) {
-          pkg.x += speed * dt;
+          // HEAVY boxes move at 70% speed when weight system is active
+          const pkgSpeed = (this.currentLevelData.weightSystem && pkg.weight === 'HEAVY')
+            ? speed * 0.5
+            : speed;
+          pkg.x += pkgSpeed * dt;
           // Shadow tracks box horizontally at fixed conveyor Y
           if (pkg.shadowGfx) pkg.shadowGfx.x = pkg.x;
         }
